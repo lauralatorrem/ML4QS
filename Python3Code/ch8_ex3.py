@@ -71,8 +71,8 @@ learner = TemporalRegressionAlgorithms()
 eval = RegressionEvaluation()
 
 dataset['activityLevel'] = 0
-dataset.loc[dataset['labelOnTable'] == 1 or dataset['labelSitting'] == 1 or dataset['labelWashingHands'] == 1 or dataset['labelStanding'] == 1, 'activityLevel'] = 'Low'
-dataset.loc[dataset['labelWalking'] == 1 or dataset['labelDriving'] == 1 or dataset['labelEating'] == 1, 'activityLevel'] = 'Medium'
+dataset.loc[(dataset['labelOnTable'] == 1) | (dataset['labelSitting'] == 1) | (dataset['labelWashingHands'] == 1) | (dataset['labelStanding'] == 1), 'activityLevel'] = 'Low'
+dataset.loc[(dataset['labelWalking'] == 1) | (dataset['labelDriving'] == 1) | (dataset['labelEating'] == 1), 'activityLevel'] = 'Medium'
 dataset.loc[dataset['labelRunning'] == 1, 'activityLevel'] = 'High'
 
 selected_features = ['self.activityLevel', 'self.hr_watch_rate', 'self.acc_phone_y_temp_mean_ws_120']
