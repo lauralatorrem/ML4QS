@@ -28,8 +28,10 @@ def main():
 
     # As usual, we set our program constants, read the input file and initialize a visualization object.
     DATA_PATH = Path('./intermediate_datafiles/')
-    DATASET_FNAME = 'chapter4_result.csv'
-    RESULT_FNAME = 'chapter5_result.csv'
+    #DATASET_FNAME = 'chapter4_result.csv'
+    #RESULT_FNAME = 'chapter5_result.csv'
+    DATASET_FNAME = 'phyphox2_labels.csv'
+    RESULT_FNAME = 'phyphox_clustered_result.csv'
 
     try:
         dataset = pd.read_csv(DATA_PATH / DATASET_FNAME, index_col=0)
@@ -54,7 +56,7 @@ def main():
         for k in k_values:
             print(f'k = {k}')
             dataset_cluster = clusteringNH.k_means_over_instances(copy.deepcopy(
-                dataset), ['acc_phone_x', 'acc_phone_y', 'acc_phone_z'], k, 'default', 20, 10)
+                dataset), ['mag_phone_x', 'mag_phone_y', 'mag_phone_z'], k, 'default', 20, 10)
             silhouette_score = dataset_cluster['silhouette'].mean()
             print(f'silhouette = {silhouette_score}')
             silhouette_values.append(silhouette_score)
@@ -67,6 +69,14 @@ def main():
         k = k_values[np.argmax(silhouette_values)]
         print(f'Highest K-Means silhouette score: k = {k}')
         print('Use this value of k to run the --mode=final --k=?')
+
+        dataset_kmed = clusteringNH.k_means_over_instances(copy.deepcopy(dataset), [
+                                                             'mag_phone_x', 'mag_phone_y', 'mag_phone_z'], k, 'default', 20, n_inits=50)
+        DataViz.plot_clusters_3d(dataset_kmed, [
+                                 'mag_phone_x', 'mag_phone_y', 'mag_phone_z'], 'cluster', ['label'])
+        DataViz.plot_silhouette(dataset_kmed, 'cluster', 'silhouette')
+        util.print_latex_statistics_clusters(dataset_kmed, 'cluster', [
+                                             'mag_phone_x', 'mag_phone_y', 'mag_phone_z'], 'label')
 
     if FLAGS.mode == 'kmediods':
 
