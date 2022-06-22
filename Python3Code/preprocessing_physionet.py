@@ -13,6 +13,7 @@ from util import util
 from pathlib import Path
 import os
 import pandas as pd
+import shutil
 
 
 def to_named_label(label):
@@ -31,6 +32,7 @@ def to_named_label(label):
 
 
 def convert_labels(csvfile):
+    csvfile = str(csvfile)
     df = pd.read_csv(csvfile, sep=' ', names=["timestamp", "labels"], index_col=False)
     time = df["timestamp"].to_list()
     labels = df["labels"].to_list()
@@ -61,53 +63,62 @@ def convert_labels(csvfile):
 
 # Chapter 2: Initial exploration of the dataset.
 
-DATASET_PATH = Path('./datasets/physionet.org/cropped/46343')
-USER_ID = DATASET_PATH.name
-RESULT_PATH = Path('./intermediate_datafiles/')
-RESULT_FNAME = 'physionet_example.csv'
+FILES_PATH = Path('./datasets/physionet.org/cropped/')
+RESULT_PATH = Path('./intermediate_datafiles/physionet_patients/')
 
 # We can call Path.mkdir(exist_ok=True) to make any required directories if they don't already exist.
-[path.mkdir(exist_ok=True, parents=True) for path in [DATASET_PATH, RESULT_PATH]]
+[path.mkdir(exist_ok=True, parents=True) for path in [FILES_PATH, RESULT_PATH]]
 
-for filename in os.listdir(DATASET_PATH):
-    if 'psg.out' in filename:
-        convert_labels(str(DATASET_PATH)+'/'+filename)
+all_files = [x for x in os.listdir(FILES_PATH) if x[-3:]=='out']
+filetypes = set((x.split('_')[0] for x in all_files))
+
+for ftype in filetypes:
+    Path(FILES_PATH / ftype).mkdir(exist_ok=True)
+    files = [x for x in all_files if ftype in x]
+    for fname in files:
+        shutil.move(str(FILES_PATH) + '/' + fname, str(FILES_PATH) + '/' + ftype)
+        if 'psg.out' in fname:
+            convert_labels(FILES_PATH / ftype / fname)
 
 
 # Set a granularity (the discrete step size of our time series data). We'll use a course-grained granularity of one
 # instance per minute, and a fine-grained one with four instances per second.
-milliseconds_per_instance = 250
+for folder in os.listdir(FILES_PATH):
+    DATASET_PATH = Path('./datasets/physionet.org/cropped/'+folder+'/')
 
-print('Please wait, this will take a while to run!')
+    milliseconds_per_instance = 250
 
-print(f'Creating numerical datasets from files in {DATASET_PATH} using granularity {milliseconds_per_instance}.')
+    print('Please wait, this will take a while to run!')
 
-# Create an initial dataset object with the base directory for our data and a granularity
-dataset = CreateDataset(DATASET_PATH, milliseconds_per_instance)
+    print(f'Creating numerical datasets from files in {DATASET_PATH} using granularity {milliseconds_per_instance}.')
 
-# Add the selected measurements to it.
+    # Create an initial dataset object with the base directory for our data and a granularity
+    dataset = CreateDataset(DATASET_PATH, milliseconds_per_instance)
 
-# We add the accelerometer data (continuous numerical measurements) of the phone and the smartwatch
-# and aggregate the values per timestep by averaging the values
-dataset.add_numerical_dataset(USER_ID+'_cleaned_motion.out', 'timestamps', ['x','y','z'], 'avg', 'acc_phone_')
+    # Add the selected measurements to it.
 
-# We add the heart rate (continuous numerical measurements) and aggregate by averaging again
-dataset.add_numerical_dataset(USER_ID+'_cleaned_hr.out', 'timestamps', ['rate'], 'avg', 'hr_watch_')
+    # We add the accelerometer data (continuous numerical measurements) of the phone and the smartwatch
+    # and aggregate the values per timestep by averaging the values
+    dataset.add_numerical_dataset(folder+'_cleaned_motion.out', 'timestamps', ['x','y','z'], 'avg', 'acc_phone_')
 
-# We add the labels provided by the users. These are categorical events that might overlap. We add them
-# as binary attributes (i.e. add a one to the attribute representing the specific value for the label if it
-# occurs within an interval).
-dataset.add_event_dataset(USER_ID+'_cleaned_psg.csv', 'label_start', 'label_end', 'label', 'binary')
+    # We add the heart rate (continuous numerical measurements) and aggregate by averaging again
+    dataset.add_numerical_dataset(folder+'_cleaned_hr.out', 'timestamps', ['rate'], 'avg', 'hr_watch_')
 
-# Get the resulting pandas data table
-dataset = dataset.data_table
+    # We add the labels provided by the users. These are categorical events that might overlap. We add them
+    # as binary attributes (i.e. add a one to the attribute representing the specific value for the label if it
+    # occurs within an interval).
+    dataset.add_event_dataset(folder+'_cleaned_psg.csv', 'label_start', 'label_end', 'label', 'binary')
 
-# And print a summary of the dataset.
-util.print_statistics(dataset)
+    # Get the resulting pandas data table
+    dataset = dataset.data_table
 
-# Finally, store the last dataset we generated (250 ms).
-dataset.to_csv(RESULT_PATH / RESULT_FNAME)
+    # And print a summary of the dataset.
+    util.print_statistics(dataset)
 
-# Lastly, print a statement to know the code went through
+    # Finally, store the last dataset we generated (250 ms).
+    RESULT_FNAME = 'physionet_'+ folder +'.csv'
+    dataset.to_csv(RESULT_PATH / RESULT_FNAME)
 
-print('The code has run through successfully!')
+    # Lastly, print a statement to know the code went through
+
+    print('The code has run through successfully!')
