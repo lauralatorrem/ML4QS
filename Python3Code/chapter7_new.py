@@ -29,7 +29,7 @@ from util import util
 from util.VisualizeDataset import VisualizeDataset
 
 # Read the result from the previous chapter, and make sure the index is of the type datetime.
-DATA_PATH = Path('./intermediate_datafiles/')
+DATA_PATH = Path('./intermediate_datafiles/physionet_patients')
 DATASET_FNAME = 'physionet_1360686_chapter5_result.csv'
 DATASET_FNAME2 = 'physionet_3997827_chapter5_result.csv'
 DATASET_FNAME3 = 'physionet_8173033_chapter5_result.csv'
@@ -38,7 +38,7 @@ RESULT_FNAME = 'chapter7_classification_physionet_result.csv'
 EXPORT_TREE_PATH = Path('./figures/physionet/')
 
 # Next, we declare the parameters we'll use in the algorithms.
-N_FORWARD_SELECTION = 15
+N_FORWARD_SELECTION = 20
 
 try:
     dataset = pd.read_csv(DATA_PATH / DATASET_FNAME, index_col=0)
@@ -52,6 +52,10 @@ dataset = dataset.dropna()
 dataset2 = dataset2.dropna()
 dataset3 = dataset3.dropna()
 dataset4 = dataset4.dropna()
+dataset = dataset.drop("labelUnknown", axis=1)
+dataset2 = dataset2.drop("labelUnknown", axis=1)
+dataset3 = dataset3.drop("labelUnknown", axis=1)
+dataset4 = dataset4.drop("labelUnknown", axis=1)
 
 
 dataset.index = pd.to_datetime(dataset.index)
@@ -73,7 +77,10 @@ datasets = [dataset, dataset2, dataset3, dataset4]
 prepare = PrepareDatasetForLearning()
 #print(dataset)
 #train_X, test_X, train_y, test_y = prepare.split_single_dataset_classification(dataset, ['label'], 'like', 0.7, filter=True, temporal=False)
-train_X, test_X, train_y, test_y = prepare.split_multiple_datasets_classification(datasets, ['label'], 'like', 0.7, filter=True, temporal=False)
+train_X, test_X, train_y, test_y = prepare.split_multiple_datasets_classification(datasets, ['labelAwake', 'labelN1',
+                                                                                             'labelN2', 'labelN3',
+                                                                                             'labelREM'], 'like', 0.7,
+                                                                                  filter=True, temporal=False)
 print('Training set length is: ', len(train_X.index))
 print('Test set length is: ', len(test_X.index))
 
@@ -147,7 +154,8 @@ DataViz.plot_xy(x=[reg_parameters, reg_parameters], y=[performance_training, per
 
 #Second, let us consider the influence of certain parameter settings for the tree model. (very related to the
 #regularization) and study the impact on performance.
-selected_features = ['acc_phone_x' , 'hr_watch_rate', 'pca_1', 'hr_watch_rate_temp_mean_ws_120', 'cluster', 'temp_pattern_labelREM(b)labelREM']
+selected_features = features
+print(f"Selected features: {selected_features}")
 leaf_settings = [1,2,5,10]
 performance_training = []
 performance_test = []
@@ -170,8 +178,8 @@ DataViz.plot_xy(x=[leaf_settings, leaf_settings], y=[performance_training, perfo
 
 
 
-#possible_feature_sets = [basic_features, features_after_chapter_3, features_after_chapter_4, features_after_chapter_5, selected_features]
-possible_feature_sets = [selected_features]
+possible_feature_sets = [basic_features, features_after_chapter_3, features_after_chapter_4, features_after_chapter_5, selected_features]
+#possible_feature_sets = [selected_features]
 feature_names = ['Selected features']
 N_KCV_REPEATS = 2
 
